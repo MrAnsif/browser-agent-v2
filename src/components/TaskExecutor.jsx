@@ -38,8 +38,8 @@ export const TaskExecutor = () => {
         <p>Automate browser tasks with AI</p>
       </div>
 
-      <TaskForm 
-        onSubmit={handleStartTask} 
+      <TaskForm
+        onSubmit={handleStartTask}
         disabled={isRunning}
       />
 
@@ -65,7 +65,7 @@ export const TaskExecutor = () => {
             {logs.map((log, index) => (
               <div key={index} className="log-entry">
                 <span className="log-time">{formatTimestamp(log.timestamp)}</span>
-                <span 
+                <span
                   className="log-actor"
                   style={{ color: getLogColor(log.state) }}
                 >

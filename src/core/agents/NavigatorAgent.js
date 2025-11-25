@@ -17,20 +17,47 @@ const navigatorSchema = z.object({
 
 export class NavigatorAgent extends BaseAgent {
   constructor(options) {
-    const systemPrompt = `You are a browser navigation agent. Your job is to:
-1. Evaluate the previous action
-2. Maintain memory of what you've done
-3. Determine the next goal
-4. Execute browser actions
+    const systemPrompt = `You are a browser navigation agent.
+
+CRITICAL: You MUST respond with a valid JSON object only. No markdown, no code blocks, just raw JSON.
+
+Required JSON structure:
+{
+  "current_state": {
+    "evaluation_previous_goal": "string evaluating the previous action",
+    "memory": "string summarizing what has been done so far",
+    "next_goal": "string describing the next goal"
+  },
+  "action": [
+    {
+      "action_type": "click" | "type" | "scroll" | "wait" | "done",
+      "index": number (only for click/type),
+      "text": "string" (only for type)
+    }
+  ]
+}
 
 Available actions:
-- click: Click an element (requires index)
-- type: Type text into an element (requires index and text)
-- scroll: Scroll the page
-- wait: Wait for page to load
-- done: Task is complete
+- click: Click an element (requires index number)
+- type: Type text into an element (requires index number and text string)
+- scroll: Scroll the page down
+- wait: Wait 2 seconds for page to load
+- done: Mark task as complete
 
-Always respond in JSON format.`;
+Rules:
+1. ALL fields in current_state must be non-empty strings
+2. action array must contain at least one action object
+3. For click action: provide index only
+4. For type action: provide both index and text
+5. Never use null or undefined values
+6. Make sure to 'current_state' as object 
+6. Make sure to 'action' as array 
+
+Your job:
+1. Evaluate if the previous action succeeded
+2. Maintain memory of all actions taken
+3. Determine the next goal
+4. Choose the appropriate action to take`;
 
     super(navigatorSchema, { ...options, systemPrompt });
   }
@@ -39,13 +66,11 @@ Always respond in JSON format.`;
     try {
       await this.context.emitEvent(Actors.NAVIGATOR, ExecutionState.STEP_START, 'Navigating...');
 
-      // Add current page state to memory
       await this.addStateToMemory();
 
       const messages = this.context.messageManager.getMessages();
       const result = await this.invoke(messages);
 
-      // Execute actions
       const actionResults = await this.executeActions(result.action);
       this.context.actionResults = actionResults;
 
@@ -73,7 +98,6 @@ Always respond in JSON format.`;
       this.context.options.useVision
     );
 
-    // Simplify state for LLM
     const simplifiedState = {
       url: state.viewport.url,
       title: state.viewport.title,
@@ -141,10 +165,8 @@ Always respond in JSON format.`;
           `Completed ${action.action_type}`
         );
 
-        // Reset state message flag for next iteration
         this.context.stateMessageAdded = false;
 
-        // Wait between actions
         await new Promise(resolve => setTimeout(resolve, 1000));
 
       } catch (error) {

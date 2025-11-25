@@ -268,3 +268,30 @@ button:disabled {
 .logs::-webkit-scrollbar-thumb:hover {
   background: #9ca3af;
 }
+
+.log-ai-response {
+  margin-top: 8px;
+  border-left: 3px solid #3b82f6;
+  padding-left: 12px;
+}
+
+.log-ai-response details {
+  cursor: pointer;
+}
+
+.log-ai-response summary {
+  font-weight: 500;
+  color: #3b82f6;
+  user-select: none;
+}
+
+.log-ai-response pre {
+  background: #f3f4f6;
+  padding: 10px;
+  border-radius: 4px;
+  font-size: 12px;
+  overflow-x: auto;
+  max-height: 300px;
+  overflow-y: auto;
+  margin-top: 8px;
+}

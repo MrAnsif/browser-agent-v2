@@ -22,8 +22,11 @@ export class BaseAgent {
         this.apiKey, 
         this.model
       );
+      console.log("AI RAW RESPONSE:", response);
 
       // Validate with Zod schema
+      const parsed = this.schema.parse(response);
+      
       return this.schema.parse(response);
     } catch (error) {
       console.error('Agent invocation error:', error);

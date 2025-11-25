@@ -5,10 +5,12 @@ import { EventManager } from '../core/events/EventManager.js';
 import { BrowserContext } from '../core/browser/BrowserContext.js';
 import { DEFAULT_OPTIONS } from '../core/context/AgentContext.js';
 
+
 export const useExecutor = () => {
   const [isRunning, setIsRunning] = useState(false);
   const [isPaused, setIsPaused] = useState(false);
   const [logs, setLogs] = useState([]);
+  const [res, setRes] = useState([])
   const [currentStep, setCurrentStep] = useState(0);
   const [status, setStatus] = useState('idle'); // idle, running, paused, completed, failed
   
@@ -30,10 +32,12 @@ export const useExecutor = () => {
           timestamp: event.timestamp,
           actor: event.actor,
           state: event.state,
-          details: event.data.details
+          details: event.data.details,
+          response: event.data.response, // Capture AI response here
         }]);
 
         setCurrentStep(event.data.step);
+        setRes(event.data.response);
 
         if (event.state === 'task.start') {
           setStatus('running');
@@ -122,6 +126,7 @@ export const useExecutor = () => {
     isRunning,
     isPaused,
     logs,
+    res,
     currentStep,
     status
   };

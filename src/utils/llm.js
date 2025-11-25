@@ -9,7 +9,7 @@ export async function callOpenRouter(messages, apiKey, model = 'openai/gpt-4-tur
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
-                'Authorization': `Bearer ${apiKey}`, //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
+                'Authorization': `Bearer ${apiKey}`, 
                 'HTTP-Referer': chrome.runtime.getURL(''),
                 'X-Title': 'AI Browser Agent'
             },

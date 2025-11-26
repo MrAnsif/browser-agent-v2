@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { Key, Send } from 'lucide-react';
 
 export const TaskForm = ({ onSubmit, disabled }) => {
-  const [task, setTask] = useState('scroll down');
+  const [task, setTask] = useState('');
   const [apiKey, setApiKey] = useState('');
 
   const handleSubmit = (e) => {

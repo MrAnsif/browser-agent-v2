@@ -6,7 +6,7 @@ export class MessageManager {
       imageTokens: 800,
       ...options
     };
-    
+
     this.history = {
       messages: [],
       totalTokens: 0
@@ -34,7 +34,7 @@ export class MessageManager {
       content: `Your task: ${task}\n\nPlease complete this task step by step.`
     });
 
-    // Example output
+    // Example output with CORRECT format
     this.addExampleOutput();
 
     // History marker
@@ -47,18 +47,73 @@ export class MessageManager {
   addExampleOutput() {
     this.addMessage({
       role: 'user',
-      content: 'Example output format:'
+      content: 'Example of correct JSON response format:'
+    });
+
+    // Example 1: Click action
+    this.addMessage({
+      role: 'assistant',
+      content: JSON.stringify({
+        current_state: {
+          evaluation_previous_goal: "Page loaded successfully, search input is visible",
+          memory: "Navigated to Google homepage",
+          next_goal: "Click on the search input field to start typing"
+        },
+        action: [
+          {
+            action_type: "click",
+            index: 2,
+            reasoning: "Clicking search input at index 2 to focus it"
+          }
+        ]
+      }, null, 2)
+    });
+
+    // Example 2: Type action
+    this.addMessage({
+      role: 'user',
+      content: 'Another example with typing:'
     });
 
     this.addMessage({
       role: 'assistant',
       content: JSON.stringify({
         current_state: {
-          evaluation_previous_goal: "Successfully navigated to the search page",
-          memory: "Opened browser, searched for information",
-          next_goal: "Click on the first search result"
+          evaluation_previous_goal: "Successfully clicked search input, now it's focused",
+          memory: "Navigated to Google, clicked search input",
+          next_goal: "Type the search query into the focused input"
         },
-        action: [{ click_element: { index: 5 } }]
+        action: [
+          {
+            action_type: "type",
+            index: 2,
+            text: "artificial intelligence",
+            reasoning: "Typing search query into the focused input field"
+          }
+        ]
+      }, null, 2)
+    });
+
+    // Example 3: Multiple actions
+    this.addMessage({
+      role: 'user',
+      content: 'Example with scroll action:'
+    });
+
+    this.addMessage({
+      role: 'assistant',
+      content: JSON.stringify({
+        current_state: {
+          evaluation_previous_goal: "Typed search query successfully",
+          memory: "Navigated to Google, clicked input, typed search query",
+          next_goal: "Scroll down to see more options or find search button"
+        },
+        action: [
+          {
+            action_type: "scroll",
+            reasoning: "Need to see more elements on the page"
+          }
+        ]
       }, null, 2)
     });
   }
@@ -74,9 +129,20 @@ export class MessageManager {
   }
 
   addStateMessage(state) {
+    const stateText = `CURRENT PAGE STATE:
+URL: ${state.url}
+Title: ${state.title}
+
+Interactive Elements (${state.interactiveElements?.length || 0} total):
+${state.interactiveElements?.map(el =>
+      `Index ${el.index}: <${el.tag}> ${el.text ? `"${el.text.slice(0, 50)}"` : ''} ${JSON.stringify(el.attributes)}`
+    ).join('\n') || 'No interactive elements found'}
+
+Analyze the above state and decide what action to take next.`;
+
     this.addMessage({
       role: 'user',
-      content: `Current page state:\n${JSON.stringify(state, null, 2)}`
+      content: stateText
     });
   }
 
@@ -118,12 +184,12 @@ export class MessageManager {
     // Trim text if still over limit
     if (this.history.totalTokens > this.settings.maxInputTokens) {
       const proportion = excess / lastMsg.metadata.tokens;
-      const content = typeof lastMsg.message.content === 'string' 
-        ? lastMsg.message.content 
+      const content = typeof lastMsg.message.content === 'string'
+        ? lastMsg.message.content
         : lastMsg.message.content.map(c => c.text).join('');
-      
+
       const trimmed = content.slice(0, -Math.floor(content.length * proportion));
-      
+
       this.history.messages.pop();
       this.addMessage({ ...lastMsg.message, content: trimmed });
     }

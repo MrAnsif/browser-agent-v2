@@ -29,22 +29,25 @@ export async function callOpenRouter(messages, apiKey, model = 'openai/gpt-oss-2
     }
 
     const data = await response.json();
-    
+
     if (!data.choices || !data.choices[0] || !data.choices[0].message) {
       throw new Error('Invalid response from OpenRouter API');
     }
 
     let content = data.choices[0].message.content;
-    
+
     // Clean up content
     content = content.trim();
     content = content.replace(/```json\s*/g, '').replace(/```\s*/g, '');
     content = content.trim();
-    
+
+    console.log('content response at llm: ', messages, content)
     // Parse JSON response
     try {
       const parsed = JSON.parse(content);
-      
+      console.log('parsed response at llm: ', parsed)
+
+
       // Fix for Planner Agent
       if (parsed.observation !== undefined) {
         if (parsed.challenges === undefined || parsed.challenges === null) {
@@ -60,7 +63,7 @@ export async function callOpenRouter(messages, apiKey, model = 'openai/gpt-oss-2
           parsed.reasoning = '';
         }
       }
-      
+
       // Fix for Navigator Agent
       if (parsed.current_state === undefined || parsed.current_state === null) {
         parsed.current_state = {
@@ -69,25 +72,25 @@ export async function callOpenRouter(messages, apiKey, model = 'openai/gpt-oss-2
           next_goal: parsed.next_goal || 'Analyzing page'
         };
       }
-      
+
       if (parsed.action === undefined || parsed.action === null) {
-        parsed.action = parsed.actions || [{ action_type: 'wait' }];
+        parsed.action = parsed.actions || [{ action_type: 'scroll' }];
       }
-      
+
       // Ensure action is an array
       if (!Array.isArray(parsed.action)) {
         parsed.action = [parsed.action];
       }
-      
+
       // Normalize action_type values - fix common variations
       parsed.action = parsed.action.map(act => {
         // Create a clean action object
         const cleanAction = { ...act };
-        
+
         // Normalize action_type
         if (cleanAction.action_type) {
           const actionType = cleanAction.action_type.toLowerCase().trim();
-          
+
           // Map variations to valid action types
           if (actionType === 'click_element' || actionType === 'click') {
             cleanAction.action_type = 'click';
@@ -101,26 +104,26 @@ export async function callOpenRouter(messages, apiKey, model = 'openai/gpt-oss-2
             cleanAction.action_type = 'done';
           } else {
             // Default to wait if unknown
-            cleanAction.action_type = 'wait';
+            cleanAction.action_type = 'scroll';
           }
         } else {
           // No action_type found, default to wait
-          cleanAction.action_type = 'wait';
+          cleanAction.action_type = 'scroll';
         }
-        
+
         // Ensure index is a number if present
         if (cleanAction.index !== undefined && cleanAction.index !== null) {
           cleanAction.index = parseInt(cleanAction.index);
         }
-        
+
         // Ensure text is a string if present
         if (cleanAction.text !== undefined && cleanAction.text !== null) {
           cleanAction.text = String(cleanAction.text);
         }
-        
+
         return cleanAction;
       });
-      
+
       return parsed;
     } catch (parseError) {
       console.error('Failed to parse JSON response:', content);

@@ -48,6 +48,7 @@ Your job:
     try {
       await this.context.emitEvent(Actors.PLANNER, ExecutionState.STEP_START, 'Planning...');
 
+      // this.context.messageManager.reset();
       const messages = this.context.messageManager.getMessages();
       const result = await this.invoke(messages);
 

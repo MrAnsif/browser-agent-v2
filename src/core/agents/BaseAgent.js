@@ -13,24 +13,24 @@ export class BaseAgent {
   async invoke(messages) {
     try {
       // Add system prompt if not already included
-      const messagesWithSystem = messages[0]?.role === 'system' 
-        ? messages 
-        : [{ role: 'system', content: this.systemPrompt }, ...messages];
+      const messagesWithSystem = [{ role: 'system', content: this.systemPrompt }, ...messages.filter(m => m.role !== 'system')];
 
+
+      console.log('Message at baseAgent: ', messages)
       const response = await callOpenRouter(
-        messagesWithSystem, 
-        this.apiKey, 
+        messagesWithSystem,
+        this.apiKey,
         this.model
       );
-      console.log("AI RAW RESPONSE:", response);
+      // console.log("AI RAW RESPONSE at baseAgent:",this.systemPrompt, response);
 
       // Validate with Zod schema
-      const parsed = this.schema.parse(response);
-      
+      // const parsed = this.schema.parse(response);
+
       return this.schema.parse(response);
     } catch (error) {
       console.error('Agent invocation error:', error);
-      
+
       // Re-throw with more context
       if (error.message.includes('OpenRouter API Error')) {
         throw new Error(`LLM Error: ${error.message}`);

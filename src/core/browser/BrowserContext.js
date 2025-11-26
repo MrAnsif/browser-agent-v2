@@ -22,6 +22,8 @@ export class BrowserContext {
 
   async getState(useVision = false) {
     try {
+      await this.removeHighlight();
+      
       await this.injectDomBuilder();
 
       // Execute and get result in a single call

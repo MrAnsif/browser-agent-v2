@@ -68,8 +68,11 @@ Your job:
 
       await this.addStateToMemory();
 
+      // this.context.messageManager.reset();
       const messages = this.context.messageManager.getMessages();
       const result = await this.invoke(messages);
+
+      console.log('action at navAgent: ', result)
 
       const actionResults = await this.executeActions(result.action);
       this.context.actionResults = actionResults;

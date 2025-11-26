@@ -13,6 +13,18 @@
   "host_permissions": [
     "<all_urls>"
   ],
+  "web_accessible_resources": [
+    {
+      "resources": [
+        "domBuilder.js",
+        "callDomBuilder.js",
+        "removeHighlights.js"
+      ],
+      "matches": [
+        "<all_urls>"
+      ]
+    }
+  ],
   "background": {
     "service_worker": "background.js",
     "type": "module"

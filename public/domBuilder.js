@@ -1,147 +1,152 @@
-// Injected into the MAIN world — attaches DOM builder to window
+// EXPOSE DIRECTLY TO MAIN WORLD — no wrapper, no IIFE
+console.log("[domBuilder] Script loaded in MAIN world");
 
-(function () {
-    window.__buildDomTree = function (showHighlight = false, focusElement = -1, viewportExpansion = 0) {
-        const elementMap = {};
-        let highlightIndex = 0;
+// Assign the function directly on global window
+window.__buildDomTree = function (showHighlight = false, focusElement = -1, viewportExpansion = 0) {
 
-        const isVisible = (element) => {
-            if (!element) return false;
-            const style = window.getComputedStyle(element);
-            return style.display !== 'none' &&
-                style.visibility !== 'hidden' &&
-                parseFloat(style.opacity || "1") !== 0;
-        };
+    console.log("[domBuilder] __buildDomTree attached");
 
-        const isInteractive = (element) => {
-            const tags = ['A', 'BUTTON', 'INPUT', 'SELECT', 'TEXTAREA'];
-            return (
-                tags.includes(element.tagName) ||
-                element.hasAttribute('onclick') ||
-                element.getAttribute('role') === 'button'
-            );
-        };
+    const elementMap = {};
+    let highlightIndex = 0;
 
-        const getXPath = (element) => {
-            if (element.id) return `//*[@id="${element.id}"]`;
+    const isVisible = (element) => {
+        if (!element) return false;
+        const style = window.getComputedStyle(element);
+        return style.display !== 'none' &&
+            style.visibility !== 'hidden' &&
+            parseFloat(style.opacity || "1") !== 0;
+    };
 
-            const parts = [];
-            let current = element;
-            while (current && current.nodeType === Node.ELEMENT_NODE) {
-                let index = 1;
-                let sibling = current.previousSibling;
+    const isInteractive = (element) => {
+        const tags = ['A', 'BUTTON', 'INPUT', 'SELECT', 'TEXTAREA'];
+        return (
+            tags.includes(element.tagName) ||
+            element.hasAttribute('onclick') ||
+            element.getAttribute('role') === 'button'
+        );
+    };
 
-                while (sibling) {
-                    if (sibling.nodeType === Node.ELEMENT_NODE &&
-                        sibling.tagName === current.tagName) {
-                        index++;
-                    }
-                    sibling = sibling.previousSibling;
+    const getXPath = (element) => {
+        if (element.id) return `//*[@id="${element.id}"]`;
+
+        const parts = [];
+        let current = element;
+        while (current && current.nodeType === Node.ELEMENT_NODE) {
+            let index = 1;
+            let sibling = current.previousSibling;
+
+            while (sibling) {
+                if (sibling.nodeType === Node.ELEMENT_NODE &&
+                    sibling.tagName === current.tagName) {
+                    index++;
                 }
-
-                const tag = current.tagName.toLowerCase();
-                const path = `${tag}${index > 1 ? `[${index}]` : ''}`;
-                parts.unshift(path);
-
-                current = current.parentNode;
+                sibling = sibling.previousSibling;
             }
 
-            return `/${parts.join('/')}`;
-        };
+            const tag = current.tagName.toLowerCase();
+            const path = `${tag}${index > 1 ? `[${index}]` : ''}`;
+            parts.unshift(path);
 
-        const addHighlight = (element, index) => {
-            const overlay = document.createElement('div');
-            overlay.className = '__ai_agent_highlight';
-            overlay.dataset.highlightIndex = index;
-            overlay.style.cssText = `
-        position: absolute;
-        background: rgba(255, 0, 0, 0.2);
-        border: 2px solid red;
-        color: red;
-        font-size: 14px;
-        font-weight: bold;
-        padding: 2px 4px;
-        pointer-events: none;
-        z-index: 999999;
-      `;
+            current = current.parentNode;
+        }
 
-            const rect = element.getBoundingClientRect();
-            overlay.style.left = `${rect.left + window.scrollX}px`;
-            overlay.style.top = `${rect.top + window.scrollY}px`;
-            overlay.style.width = `${rect.width}px`;
-            overlay.style.height = `${rect.height}px`;
-            overlay.textContent = index;
+        return `/${parts.join('/')}`;
+    };
 
-            document.body.appendChild(overlay);
-        };
+    const addHighlight = (element, index) => {
+        element.setAttribute('data-highlight-index', index);
 
-        const processNode = (node) => {
-            const id = `node_${Object.keys(elementMap).length}`;
+        const overlay = document.createElement('div');
+        overlay.className = '__ai_agent_highlight';
+        overlay.textContent = index;
+        overlay.style.cssText = `
+          position: absolute;
+          background: rgba(255, 0, 0, 0.3);
+          border: 2px solid red;
+          color: white;
+          font-weight: bold;
+          font-size: 12px;
+          padding: 2px 6px;
+          border-radius: 3px;
+          z-index: 999999;
+          pointer-events: none;
+        `;
 
-            if (node.nodeType === Node.TEXT_NODE) {
-                const text = node.textContent.trim();
-                if (!text) return null;
+        const rect = element.getBoundingClientRect();
+        overlay.style.left = `${rect.left + window.scrollX}px`;
+        overlay.style.top = `${rect.top + window.scrollY}px`;
+        overlay.style.width = `${rect.width}px`;
+        overlay.style.height = `${rect.height}px`;
 
-                elementMap[id] = {
-                    type: 'TEXT_NODE',
-                    text,
-                    isVisible: isVisible(node.parentElement)
-                };
+        document.body.appendChild(overlay);
+    };
 
-                return id;
-            }
+    const processNode = (node) => {
+        const id = `node_${Object.keys(elementMap).length}`;
 
-            if (node.nodeType === Node.ELEMENT_NODE) {
-                const visible = isVisible(node);
-                const interactive = isInteractive(node);
+        if (node.nodeType === Node.TEXT_NODE) {
+            const text = node.textContent.trim();
+            if (!text) return null;
 
-                const data = {
-                    tagName: node.tagName.toLowerCase(),
-                    xpath: getXPath(node),
-                    attributes: {},
-                    isVisible: visible,
-                    isInteractive: interactive,
-                    highlightIndex: (visible && interactive) ? highlightIndex++ : null,
-                    children: []
-                };
+            elementMap[id] = {
+                type: 'TEXT_NODE',
+                text,
+                isVisible: isVisible(node.parentElement)
+            };
 
-                ['id', 'class', 'href', 'type', 'value', 'placeholder', 'aria-label']
-                    .forEach(attr => {
-                        if (node.hasAttribute(attr)) data.attributes[attr] = node.getAttribute(attr);
-                    });
+            return id;
+        }
 
-                if (['BUTTON', 'A', 'LABEL'].includes(node.tagName)) {
-                    data.text = node.textContent.trim().slice(0, 200);
-                }
+        if (node.nodeType === Node.ELEMENT_NODE) {
+            const visible = isVisible(node);
+            const interactive = isInteractive(node);
 
-                Array.from(node.childNodes).forEach(child => {
-                    const childId = processNode(child);
-                    if (childId) data.children.push(childId);
+            const data = {
+                tagName: node.tagName.toLowerCase(),
+                xpath: getXPath(node),
+                attributes: {},
+                isVisible: visible,
+                isInteractive: interactive,
+                highlightIndex: (visible && interactive) ? highlightIndex++ : null,
+                children: []
+            };
+
+            ['id', 'class', 'href', 'type', 'value', 'placeholder', 'aria-label']
+                .forEach(attr => {
+                    if (node.hasAttribute(attr)) data.attributes[attr] = node.getAttribute(attr);
                 });
 
-                elementMap[id] = data;
-
-                if (showHighlight && data.highlightIndex !== null) {
-                    addHighlight(node, data.highlightIndex);
-                }
-
-                return id;
+            if (['BUTTON', 'A', 'LABEL'].includes(node.tagName)) {
+                data.text = node.textContent.trim().slice(0, 200);
             }
 
-            return null;
-        };
+            Array.from(node.childNodes).forEach(child => {
+                const childId = processNode(child);
+                if (childId) data.children.push(childId);
+            });
 
-        const rootId = processNode(document.documentElement);
+            elementMap[id] = data;
 
-        return {
-            map: elementMap,
-            rootId,
-            viewport: {
-                width: window.innerWidth,
-                height: window.innerHeight,
-                url: window.location.href,
-                title: document.title
+            if (showHighlight && data.highlightIndex !== null) {
+                addHighlight(node, data.highlightIndex);
             }
-        };
+
+            return id;
+        }
+
+        return null;
     };
-})();
+
+    const rootId = processNode(document.documentElement);
+
+    return {
+        map: elementMap,
+        rootId,
+        viewport: {
+            width: window.innerWidth,
+            height: window.innerHeight,
+            url: window.location.href,
+            title: document.title
+        }
+    };
+};

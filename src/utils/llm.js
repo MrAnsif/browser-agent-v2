@@ -13,7 +13,7 @@ export async function callOpenRouter(messages, apiKey, model = 'openai/gpt-oss-2
         'X-Title': 'AI Browser Agent'
       },
       body: JSON.stringify({
-        "model": "openai/gpt-oss-20b:free",
+        "model": "mistralai/mistral-7b-instruct:free",
         messages,
         temperature: 0.7,
         response_format: { type: 'json_object' },
@@ -45,7 +45,7 @@ export async function callOpenRouter(messages, apiKey, model = 'openai/gpt-oss-2
     try {
       const parsed = JSON.parse(content);
       
-      // Fix for Planner Agent - ensure all string fields exist
+      // Fix for Planner Agent
       if (parsed.observation !== undefined) {
         if (parsed.challenges === undefined || parsed.challenges === null) {
           parsed.challenges = 'None';
@@ -61,7 +61,7 @@ export async function callOpenRouter(messages, apiKey, model = 'openai/gpt-oss-2
         }
       }
       
-      // Fix for Navigator Agent - ensure current_state and action exist
+      // Fix for Navigator Agent
       if (parsed.current_state === undefined || parsed.current_state === null) {
         parsed.current_state = {
           evaluation_previous_goal: parsed.evaluation_previous_goal || 'Starting task',
@@ -79,6 +79,48 @@ export async function callOpenRouter(messages, apiKey, model = 'openai/gpt-oss-2
         parsed.action = [parsed.action];
       }
       
+      // Normalize action_type values - fix common variations
+      parsed.action = parsed.action.map(act => {
+        // Create a clean action object
+        const cleanAction = { ...act };
+        
+        // Normalize action_type
+        if (cleanAction.action_type) {
+          const actionType = cleanAction.action_type.toLowerCase().trim();
+          
+          // Map variations to valid action types
+          if (actionType === 'click_element' || actionType === 'click') {
+            cleanAction.action_type = 'click';
+          } else if (actionType === 'type_text' || actionType === 'input' || actionType === 'type') {
+            cleanAction.action_type = 'type';
+          } else if (actionType === 'scroll_down' || actionType === 'scroll') {
+            cleanAction.action_type = 'scroll';
+          } else if (actionType === 'wait_for_page' || actionType === 'wait') {
+            cleanAction.action_type = 'wait';
+          } else if (actionType === 'complete' || actionType === 'finish' || actionType === 'done') {
+            cleanAction.action_type = 'done';
+          } else {
+            // Default to wait if unknown
+            cleanAction.action_type = 'wait';
+          }
+        } else {
+          // No action_type found, default to wait
+          cleanAction.action_type = 'wait';
+        }
+        
+        // Ensure index is a number if present
+        if (cleanAction.index !== undefined && cleanAction.index !== null) {
+          cleanAction.index = parseInt(cleanAction.index);
+        }
+        
+        // Ensure text is a string if present
+        if (cleanAction.text !== undefined && cleanAction.text !== null) {
+          cleanAction.text = String(cleanAction.text);
+        }
+        
+        return cleanAction;
+      });
+      
       return parsed;
     } catch (parseError) {
       console.error('Failed to parse JSON response:', content);
@@ -91,7 +133,7 @@ export async function callOpenRouter(messages, apiKey, model = 'openai/gpt-oss-2
 }
 
 export const OPENROUTER_MODELS = {
-  GPT4_TURBO: 'openai/gpt-4-turbo',
+  GPT4_TURBO: 'openai/gpt-oss-20b:free',
   GPT4: 'openai/gpt-4',
   GPT35_TURBO: 'openai/gpt-3.5-turbo',
   CLAUDE_SONNET: 'anthropic/claude-3.5-sonnet',

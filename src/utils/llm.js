@@ -13,7 +13,7 @@ export async function callOpenRouter(messages, apiKey, model = 'openai/gpt-oss-2
         'X-Title': 'AI Browser Agent'
       },
       body: JSON.stringify({
-        "model": "mistralai/mistral-7b-instruct:free",
+        "model": "openai/gpt-oss-20b:free",
         messages,
         temperature: 0.7,
         response_format: { type: 'json_object' },
